@@ -32,6 +32,7 @@ jobs:
   deploy:
     name: 🚀 deploy
     needs: [ build ]
+    if: github.repository == 'wannier-developers/wannier90'
     runs-on: ubuntu-latest
     # Elevated beyond the read-only default, which is why deployment lives in
     # this workflow rather than in ci.yaml.
