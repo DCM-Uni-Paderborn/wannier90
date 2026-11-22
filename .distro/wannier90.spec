@@ -127,7 +127,17 @@ echo "builder cores: $(nproc)"
 export OMP_NUM_THREADS=1
 for mpi in '' mpich openmpi ; do
   [ -n "$mpi" ] && module load mpi/${mpi}-%{_arch}
-  %ctest
+  (
+    # Some OpenMPI runtimes cannot start a one-off job in a loopback-only buildroot.
+    # A local persistent runtime can launch the same tests with both MPI ranks.
+    if [ "$mpi" = openmpi ] && ! mpirun -np 1 /usr/bin/true; then
+      dvm_uri=$(mktemp)
+      prte --daemonize --report-uri "$dvm_uri"
+      trap 'pterm --dvm-uri "file:$dvm_uri"; rm -f "$dvm_uri"' EXIT
+      export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:+$PYTEST_ADDOPTS }--mpi-launcher='prun --dvm-uri file:$dvm_uri -np {nprocs}'"
+    fi
+    %ctest
+  )
   [ -n "$mpi" ] && module unload mpi/${mpi}-%{_arch}
 done
 
