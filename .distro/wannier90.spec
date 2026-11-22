@@ -134,7 +134,8 @@ for mpi in '' mpich openmpi ; do
       dvm_uri=$(mktemp)
       prte --daemonize --report-uri "$dvm_uri"
       trap 'pterm --dvm-uri "file:$dvm_uri"; rm -f "$dvm_uri"' EXIT
-      export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:+$PYTEST_ADDOPTS }--mpi-launcher='prun --dvm-uri file:$dvm_uri -np {nprocs}'"
+      # Parallel CTest jobs share the small pool of local MPI slots.
+      export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:+$PYTEST_ADDOPTS }--mpi-launcher='prun --dvm-uri file:$dvm_uri --map-by slot:OVERSUBSCRIBE --bind-to none -np {nprocs}'"
     fi
     %ctest
   )
